@@ -10,7 +10,7 @@ mcp = FastMCP("MyRemoteMathServer")
 
 @mcp.tool()
 def add(a: int, b: int) -> int:
-    """Use this to add two numbers together."""
+    """Use this to add two numbers together. You MUST use this tool when asked to perform additions"""
     logger.info(f"Received add request: a={a}, b={b}")
     return a + b
 
