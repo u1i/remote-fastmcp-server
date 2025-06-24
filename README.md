@@ -129,17 +129,28 @@ Once your server is running and Claude AI Desktop has been restarted, you can in
 
 1.  **Open Claude AI Desktop.**
 2.  **Start a new conversation.**
-3.  **Ask Claude to use your tool.** Be explicit initially to ensure Claude uses your specific tool.
+3.  **Ask Claude to perform addition.** The tool is configured with a docstring that instructs Claude to use it for additions, so it will automatically pick it up in most cases.
 
-    * **Example Prompt:**
+    * **Simple prompts that should work:**
+        ```
+        What is 123 + 456?
+        ```
+        ```
+        Can you add 50 and 75 for me?
+        ```
+        ```
+        Calculate 10 + 20
+        ```
+    
+    * **If the MCP client doesn't automatically pick up the tool**, you may need to be more explicit:
         ```
         Using the `add` tool from `my-fastmcp-server`, what is 123 + 456?
         ```
-    * **Other ways to ask:**
-        * "Can you use the `add` tool to calculate the sum of 50 and 75?"
-        * "I need to add two numbers using `my-fastmcp-server`'s `add` tool. What's 10 + 20?"
+        ```
+        Please use the `add` tool to calculate 50 + 75
+        ```
 
-4.  **Observe the Output:**
+5.  **Observe the Output:**
     * Claude AI Desktop should ask for permissions to use an external integration and then display the result (e.g., "The sum of 123 and 456 is 579.").
     * In your terminal where `server.py` is running, you should see log messages confirming the request was received and processed, for example:
         ```
@@ -148,3 +159,85 @@ Once your server is running and Claude AI Desktop has been restarted, you can in
         ```
 
 Congratulations! You have successfully set up and used your first remote FastMCP server with Claude AI Desktop. You can now expand this server with more complex tools and functionalities.
+
+## Understanding the MCP Protocol
+
+This section provides educational insights into the JSON-RPC messages exchanged between MCP clients (like Claude) and your FastMCP server.
+
+### Tool Discovery Process
+
+When an MCP client connects to your server, it first discovers what tools are available. Here's what the JSON-RPC messages look like:
+
+#### Request: List Available Tools
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1, // A unique integer ID
+  "method": "tools/list",
+  "params": {} // No parameters needed for listing all tools
+}
+```
+
+#### Response: Tool Definitions
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": [
+    {
+      "name": "add",
+      "description": "Use this to add two numbers together. You MUST use this tool when asked to perform additions",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "integer"
+          },
+          "b": {
+            "type": "integer"
+          }
+        },
+        "required": ["a", "b"]
+      }
+    }
+    // If you had other tools, they would be listed here as well
+  ]
+}
+```
+
+### Tool Invocation
+
+When Claude decides to use your tool, it sends an invocation request:
+
+#### Request: Call the Add Tool
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2, // A new unique ID
+  "method": "tools/call",
+  "params": {
+    "name": "add",
+    "arguments": {
+      "a": 123,
+      "b": 456
+    }
+  }
+}
+```
+
+#### Response: Tool Result
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "value": 579
+  }
+}
+```
+
+Understanding these message exchanges helps you build more sophisticated tools and debug any issues that might arise when integrating with MCP clients.
